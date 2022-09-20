@@ -3,10 +3,13 @@ Author: Sangsoo Jeong
 
 Application; File/Directory encryption and decryption sample
 */
-
 #include "essential.h"
-#include "menu.h"
+
 void manual();
+void warning(const char *data);
+
+extern int checkPath(const char *path);
+extern intptr_t _findfirst(const char *filespec, struct _finddata_t *fileinfo);
 
 int main(int argc, char *argv[])
 {
@@ -53,6 +56,7 @@ int main(int argc, char *argv[])
             break;
 
         case 'd':
+            // AES128, AES256, RSA
             struct_MenuSet._flag[DEC] = 1;
             struct_MenuSet._flag[ENC] = 0;
             break;
@@ -66,16 +70,30 @@ int main(int argc, char *argv[])
 
     if (struct_MenuSet._flag[INPUT] && struct_MenuSet._flag[OUTPUT] == FALSE)
     {
-        printf("You forgot the option input or output\n");
-        exit(-1);
+        warning("You forgot the option input or output");
     }
     if (!strcmp(struct_DataSet.element_input, struct_DataSet.element_output))
     {
-        printf("Input and Output path must set different\n");
-        exit(-1);
+        warning("Input and Output path must set different");
+    }
+    // case 'd'에서 ENC를 0로 바꾸어버려서 접근할 수는 없음
+    if (struct_MenuSet._flag[ENC] && struct_MenuSet._flag[DEC] == TRUE)
+    {
+        warning("You should check only one");
     }
 
+    // The input path is real?
+    if (checkPath(struct_DataSet.element_input) == -1)
+    {
+        warning("You should check only one");
+    }
     return 0;
+}
+
+void warning(const char *data)
+{
+    printf("%s\n", data);
+    exit(-1);
 }
 
 void manual()
