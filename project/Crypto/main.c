@@ -8,12 +8,14 @@ Application; File/Directory encryption and decryption sample
 void manual();
 void warning(const char *data);
 
+extern void optimize(char *path);
 extern int checkPath(const char *path);
 extern intptr_t _findfirst(const char *filespec, struct _finddata_t *fileinfo);
 
 int main(int argc, char *argv[])
 {
     int checker = 0;
+    int count = 0;
     MenuSet struct_MenuSet = {0, 0, 0, 1, 0, 0};
     DataSet struct_DataSet = {
         0,
@@ -25,26 +27,51 @@ int main(int argc, char *argv[])
         exit(-1);
     }
 
-    while ((checker = getopt(argc, argv, "i:o:a:v:e:d")) != NONE)
+    // Patch
+    // Before: i:o:a:v:e:d
+    // After : i:o:a:v:ed
+    // Intent: 'e' and 'd' are only check options, but do not store data anything
+    while ((checker = getopt(argc, argv, "i:o:a:v:ed")) != NONE)
     {
         switch (checker)
         {
         case 'i':
             struct_DataSet.element_input = malloc(strlen(optarg) + 1);
             strcpy(struct_DataSet.element_input, optarg);
+            // Origin: Remove the ends with '/' on the checkPath function
+            // Changed: Remove the ends with '/' on the main function
+            optimize(struct_DataSet.element_input);
+            printf("input %s\n", struct_DataSet.element_input);
             struct_MenuSet._flag[INPUT] = 1;
+            count++;
             break;
 
         case 'o':
             struct_DataSet.element_output = malloc(strlen(optarg) + 1);
             strcpy(struct_DataSet.element_output, optarg);
             struct_MenuSet._flag[OUTPUT] = 1;
+            count++;
             break;
 
         case 'a':
             struct_DataSet.element_algorithm = malloc(strlen(optarg) + 1);
             strcpy(struct_DataSet.element_algorithm, optarg);
-            struct_MenuSet._flag[ALGO] = 1;
+
+            if (!strcasecmp(struct_DataSet.element_algorithm, AES128_STR) ||
+                !strcasecmp(struct_DataSet.element_algorithm, AES256_STR) ||
+                !strcasecmp(struct_DataSet.element_algorithm, RSA_STR))
+            {
+                struct_MenuSet._flag[ALGO] = 1;
+                count++;
+            }
+            // To check correct algorithm name
+
+            else
+            {
+                struct_MenuSet._flag[ALGO] = 0;
+                warning("If you want to run this program, please double check your algorithm");
+            }
+
             break;
 
         case 'v':
@@ -53,12 +80,18 @@ int main(int argc, char *argv[])
 
         case 'e':
             // AES128, AES256, RSA
+            if (struct_MenuSet._flag[ALGO])
+            {
+                printf("Accessing %s\n", struct_DataSet.element_algorithm);
+            }
+            count++;
             break;
 
         case 'd':
             // AES128, AES256, RSA
             struct_MenuSet._flag[DEC] = 1;
             struct_MenuSet._flag[ENC] = 0;
+            count++;
             break;
 
         default:
@@ -79,13 +112,33 @@ int main(int argc, char *argv[])
     // case 'd'에서 ENC를 0로 바꾸어버려서 접근할 수는 없음
     if (struct_MenuSet._flag[ENC] && struct_MenuSet._flag[DEC] == TRUE)
     {
-        warning("You should check only one");
+        warning("You should check only one Encrypt or Decrypt");
+    }
+
+    if (count < 4)
+    {
+        warning("I am sorry you need to add another parameter");
     }
 
     // The input path is real?
-    if (checkPath(struct_DataSet.element_input) == -1)
+    checker = checkPath(struct_DataSet.element_input);
+    if (checker == -1)
     {
-        warning("You should check only one");
+        warning("File or Directory is not existed. Please Check Again");
+    }
+    // File encrypt | decrypt
+    // Encryption
+    if (checker == 1 && struct_MenuSet._flag[ENC])
+    {
+    }
+    // Decryption
+    else if (checker == 1 && struct_MenuSet._flag[DEC])
+    {
+    }
+    // Directory encrypt | decrypt
+    // Scenario: When the directory is encrypted, the file inside the directory is also encrypted
+    if (checker == 2)
+    {
     }
     return 0;
 }
